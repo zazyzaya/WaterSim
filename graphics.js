@@ -1,25 +1,4 @@
-function generateColor() {
-  let hexSet = "0123456789ABCDEF";
-  let finalHexString = "#";
-  for (let i = 0; i < 6; i++) {
-    finalHexString += hexSet[Math.ceil(Math.random() * 15)];
-  }
-  return finalHexString;
-}
-
-// WHY JAVASCRIPT?!?!?
-function mod(x,div) {
-  var rem = x % div; 
-  if (rem < 0) {
-    return div+rem; 
-  }
-  return rem;
-}
-
-function set_size(canvas_id) {
-  document.getElementById(canvas_id).setAttribute('width', W);
-  document.getElementById(canvas_id).setAttribute('height', H);
-}
+const REZ = 128; 
 
 function buildShader(gl, shader_src, shader_type) {
   const shader = gl.createShader(shader_type);
@@ -50,43 +29,49 @@ function createProgam(gl, vshader, fshader) {
 }
 
 function create2dMesh(resolution) {
-  var step = 2 / resolution; 
+  // Building verts from left to right (-1 to 1)
+  var h_step = 2/resolution; 
+  var h_start = -1; 
 
-  var triangles = []
-  var n_vecs = 0
-  for (row=0; row<resolution; row++) {
-    for (col=0; col<resolution; col++) {
-      // Build this triangle: 
-      /* 
-      start ---> mid
-        ^      |
-          \    |
-           \   v
-             end
-      */
-      start = [(step*col)-1, (step*row)-1];
-      mid = [(step*(col+1))-1, (step*row)-1];
-      end = [(step*(col+1))-1, (step*(row+1))-1];
-      
-      triangles = triangles.concat(start, mid, end);
-      n_vecs += 3
+  // Building verts from top down (1 to -1)
+  var v_step = -h_step 
+  var v_start = 1; 
 
-      // Build this triangle: 
-      /* 
-      start
-      | ^
-      |  \
-      |   \
-      v ---> end 
-   other_mid 
-      */
-      other_mid = [(step*col)-1, (step*(row+1))-1];
-      
-      triangles = triangles.concat(start, other_mid, end);
-      n_vecs += 3 
+  // Resolution = how many squares per row
+  // meaning rez 1 requires 2 verts in a row / col
+  var verts_per = resolution+1; 
+
+  // Build linspace of vertices
+  var verts = []
+  for (var y=0; y<verts_per; y++) {
+    for (var x=0; x<verts_per; x++) {
+      vx = h_start + (x*h_step);
+      vy = v_start + (y*v_step);
+      verts.push(vx,vy);
     }
   }
-  return {'triangles': triangles, 'cnt': n_vecs}
+
+  // Then tell it the order to use the indices in 
+  var indices = []
+  var cnt = 0
+  for (var row=0; row<resolution; row++) {
+    for (var col=0; col<resolution; col++) {
+      start = row*verts_per + col; 
+      mid = row*verts_per + col+1;
+      other_mid = (row+1)*verts_per + col; 
+      end = (row+1)*verts_per + col+1
+
+      indices.push(start, mid, end, start, other_mid, end); 
+      cnt += 6;
+    }
+  }
+
+  return {
+    'verts': verts, 
+    'indices': indices, 
+    't_cnt': cnt,
+    'v_cnt': verts.length
+  }
 }
 
 function createBuffer(gl, program, name) {
@@ -98,7 +83,11 @@ function createBuffer(gl, program, name) {
   return buf_ptr
 }
 
-function update(gl, p_buf, c_buf, position_ptr, color_ptr, colors, positions, cnt) {
+function update(
+    gl, water, v_data, 
+    p_buf, c_buf, idx_buf, 
+    position_ptr, color_ptr) {
+
   // Bind to position buffer 
   gl.bindBuffer(gl.ARRAY_BUFFER, p_buf)
 
@@ -106,12 +95,13 @@ function update(gl, p_buf, c_buf, position_ptr, color_ptr, colors, positions, cn
   gl.enableVertexAttribArray(position_ptr);
   gl.vertexAttribPointer(position_ptr, 2, gl.FLOAT, false, 0, 0)
 
-  // Put triangles into (active) position buffer
+  // Put vertices into (active) position buffer
   gl.bufferData(
     gl.ARRAY_BUFFER,             
-    new Float32Array(positions),  // Strongly typed array
+    new Float32Array(v_data.verts),  // Strongly typed array
     gl.STATIC_DRAW  // Compiler hint that we won't change data
   )
+
 
   // Bind to color buffer 
   gl.bindBuffer(gl.ARRAY_BUFFER, c_buf); 
@@ -120,26 +110,43 @@ function update(gl, p_buf, c_buf, position_ptr, color_ptr, colors, positions, cn
   gl.enableVertexAttribArray(color_ptr);
   gl.vertexAttribPointer(color_ptr, 1, gl.FLOAT, false, 0, 0)
 
-  // Change colors a bit 
-  ts = Date.now() / 1000
-  var n_colors = colors.map((e) => ((1+Math.sin(ts+e))/2/0.8) ); 
+  // Create colors 
+  colors = water.update();
 
-  // Load into color buffer (still the active one)
+  // Put data into color buffer 
   gl.bufferData(
     gl.ARRAY_BUFFER, 
-    new Float32Array(n_colors), 
+    new Float32Array(colors), 
     gl.STATIC_DRAW
   )
 
+  // Bind to the index buffer (do this before drawing)
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx_buf);
+
+  // Put indices into element array buf
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER, 
+    new Uint16Array(v_data.indices), 
+    gl.STATIC_DRAW
+  )
+
+  // Tell gl to actually draw the points we made
+  var primitiveType = gl.TRIANGLES; 
+  var offset = 0; // Start at the beginning of the array
+  var count = v_data.t_cnt; // Execute 3 times for 3 vertexes
+  var indexType = gl.UNSIGNED_SHORT; 
+
   // Redraw
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.drawArrays(gl.TRIANGLES, 0, cnt)
+  gl.drawElements(primitiveType, count, indexType, offset);
 
   // Call again 
 
   requestAnimationFrame( () => update(
-    gl, p_buf, c_buf, position_ptr, color_ptr, colors, positions, cnt
-  )); 
+    gl, water, v_data, 
+    p_buf, c_buf, idx_buf, 
+    position_ptr, color_ptr
+  ));
 }
 
 function main() {
@@ -172,9 +179,14 @@ function main() {
   var color_ptr = gl.getAttribLocation(program, 'a_color')
 
   // Create buffers 
-  var p_buf = gl.createBuffer(); 
-  var c_buf = gl.createBuffer();
+  const p_buf = gl.createBuffer(); 
+  const c_buf = gl.createBuffer();
+  const idx_buf = gl.createBuffer();
 
+  // Make triangles
+  const v_data = create2dMesh(REZ);
+
+  /*
   // Bind to position buffer 
   gl.bindBuffer(gl.ARRAY_BUFFER, p_buf)
 
@@ -182,17 +194,13 @@ function main() {
   gl.enableVertexAttribArray(position_ptr);
   gl.vertexAttribPointer(position_ptr, 2, gl.FLOAT, false, 0, 0)
 
-  // Make triangles
-  var data = create2dMesh(32);
-  var positions = data.triangles; 
-  var cnt = data.cnt; 
-
-  // Put triangles into (active) position buffer
+  // Put vertices into (active) position buffer
   gl.bufferData(
     gl.ARRAY_BUFFER,             
-    new Float32Array(positions),  // Strongly typed array
+    new Float32Array(v_data.verts),  // Strongly typed array
     gl.STATIC_DRAW  // Compiler hint that we won't change data
   )
+
 
   // Bind to color buffer 
   gl.bindBuffer(gl.ARRAY_BUFFER, c_buf); 
@@ -202,9 +210,8 @@ function main() {
   gl.vertexAttribPointer(color_ptr, 1, gl.FLOAT, false, 0, 0)
 
   // Create colors 
-  colors = Array(cnt).fill().map(() => Math.random()); 
+  colors = Array(v_data.v_cnt).fill().map(() => Math.random()); 
 
-  /*
   // Put data into color buffer 
   gl.bufferData(
     gl.ARRAY_BUFFER, 
@@ -212,11 +219,41 @@ function main() {
     gl.STATIC_DRAW
   )
 
+  // Bind to the index buffer (do this before drawing)
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idx_buf);
+
+  // Dont need to enable/call vertexAttribPointer? 
+  // I guess since we aren't passing in an attrib it's fine
+
+  // Put indices into element array buf
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER, 
+    new Uint16Array(v_data.indices), 
+    gl.STATIC_DRAW
+  )
+
   // Tell gl to actually draw the points we made
   var primitiveType = gl.TRIANGLES; 
   var offset = 0; // Start at the beginning of the array
-  var count = cnt; // Execute 3 times for 3 vertexes
-  gl.drawArrays(primitiveType, offset, count)
-  */ 
-  update(gl, p_buf, c_buf, position_ptr, color_ptr, colors, positions, cnt); 
+  var count = v_data.t_cnt; // Execute 3 times for 3 vertexes
+  var indexType = gl.UNSIGNED_SHORT; 
+
+  gl.drawElements(primitiveType, count, indexType, offset);
+
+  // Draws non-indexed shapes
+  // gl.drawArrays(primitiveType, offset, count)
+  
+  */
+
+  water = new Water(REZ);
+
+  // Create a drop in the middle 
+  mid = Math.floor(REZ/2)
+  water.cur[mid][mid] = 100; 
+
+  update(
+    gl, water, v_data, 
+    p_buf, c_buf, idx_buf, 
+    position_ptr, color_ptr
+  ); 
 }

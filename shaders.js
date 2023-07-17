@@ -23,5 +23,7 @@ varying vec4 v_color;
 void main() {
     // gl_FragColor is a special variable a fragment shader
     // is responsible for setting
+
     gl_FragColor = vec4(0, 0.5*v_color.x, 0.2+v_color.x, 1); 
+    //gl_FragColor = vec4(0, 0, v_color.x, 1); 
 }`

@@ -5,7 +5,7 @@
 class Matrix {
     // For simplicity, only considering square matrices
     constructor (size, fill=0) {
-        this.m = Array(size).fill(Array(size).fill(fill))
+        this.m = Array.from(Array(size), () => new Array(size).fill(fill))
         this.size = size 
     }
 
