@@ -1,4 +1,4 @@
-const REZ = 128; 
+const REZ = 200; 
 
 function buildShader(gl, shader_src, shader_type) {
   const shader = gl.createShader(shader_type);
@@ -164,8 +164,8 @@ function main() {
   var program = createProgam(gl, vert_shader, frag_shader); 
 
   // Make webGL canvas size match what we defined <canvas> as
-  webglUtils.resizeCanvasToDisplaySize(gl.canvas);
-  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+  //webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+  //gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
   // Black screen
   gl.clearColor(0,0,0,1);
