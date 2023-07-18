@@ -245,12 +245,26 @@ function main() {
   
   */
 
-  water = new Water(REZ);
-  canvas.addEventListener('click', water.disturb)
+  const water = new Water(REZ);
+  canvas.addEventListener('click', (e) => {
+    // e = Mouse click event.
+    // Get clicked coords and tell Water to update
+    var rect = e.target.getBoundingClientRect();
+    var x = e.clientX - rect.left; //x position within the element.
+    var y = e.clientY - rect.top;  //y position within the element.
+
+    var canvas_h = rect.bottom-rect.top;
+    var canvas_w = rect.right - rect.left; 
+
+    var percent_y = y / canvas_h;
+    var percent_x = x / canvas_w; 
+
+    water.disturb(percent_x, percent_y)
+  })
 
   // Create a drop in the middle 
   mid = Math.floor(REZ/2)
-  water.cur[mid][mid] = 100; 
+  //water.cur[mid][mid] = 100; 
 
   update(
     gl, water, v_data, 

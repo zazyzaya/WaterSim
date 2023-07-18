@@ -1,8 +1,9 @@
 const C_SQUARED = 1; 
 const NU = 5 // Friction
 const SLOWNESS = 1e6
-const EPSILON = 0.05;
-const DROP_SIZE = 0.1;
+const EPSILON = 0.02;
+const DROP_SIZE = 0.01;
+const DROP_DEPTH = 10; 
 
 class Water {
     constructor(resolution) {
@@ -13,6 +14,8 @@ class Water {
         this.delta_s = 2 / resolution; 
         this.delta_squared = this.delta_s * this.delta_s
 
+        // How far apart the points are in the water space (distinct from GL space)
+        this.incriment = 1/(this.rez-1);
         this.last_update = Date.now()/SLOWNESS; 
     }
 
@@ -72,10 +75,51 @@ class Water {
         return out.map((e) => this.sigmoid(e));
     }
 
-    disturb(event) {
-        // Returns coords in term of percent where 
-        // top left is (0., 0.) bottom right is (1., 1.)
-        coords = get_relative_coords(event); 
+    magnitude(x,y) {
+        return Math.sqrt(
+             Math.pow(x,2) + Math.pow(y,2)
+        )
+    }
+
+    disturb(cx, cy) {
+        for (var y=0; y<this.rez; y++){
+            for (var x=0; x<this.rez; x++) {
+                this.prev[y][x] = this.cur[y][x]; 
+            }
+        }
+        
+        console.log("in 'disturb'")
+
+        // First find all points in water plane that are affected by
+        // object pushing on water. Everything in circle centered at 
+        // <cx, cy> 
+        var affected = []
+        for (var y=0; y<this.rez; y++){
+            for (var x=0; x<this.rez; x++) {
+                vx = x*this.incriment; vy=y*this.incriment; 
+                
+                // Inside of sphere pushing the water
+                if (this.magnitude((vx-cx), (vy-cy)) <= DROP_SIZE) {
+                    affected.push([x,y])
+                }
+            }
+        }
+
+        // For all affected points, solve for z component of vector 
+        // given sphere's radius C and location <cx, cy>
+        affected.forEach( (xy) => {
+            var x = xy[0]; var y = xy[1]; 
+            vx = x*this.incriment; vy = y*this.incriment; 
+
+            this.cur[y][x] = DROP_DEPTH;
+            
+            /*
+            DROP_DEPTH * Math.abs(
+                Math.pow((vx - cx), 2) + Math.pow((vy - cy), 2) - Math.pow(DROP_SIZE, 2)
+            ); */
+            //this.prev[y][x] = this.cur[y][x]; 
+        }); 
+
     }
 }
 
