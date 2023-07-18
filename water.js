@@ -1,9 +1,10 @@
-const C_SQUARED = 1; 
-const NU = 5 // Friction
-const SLOWNESS = 1e6
-const EPSILON = 0.02;
+const C_SQUARED = 0.5; 
+const NU = 2 // Friction
+const SLOWNESS = 200
+const EPSILON = 0.0001;
+const MAX_HEIGHT = 100
 const DROP_SIZE = 0.01;
-const DROP_DEPTH = 10; 
+const DROP_DEPTH = 1; 
 
 class Water {
     constructor(resolution) {
@@ -20,8 +21,8 @@ class Water {
     }
 
     update() {
-        var ts = Date.now()/SLOWNESS; 
-        var delta_t = ts - this.last_update
+        //var ts = Date.now()/SLOWNESS; 
+        var delta_t = 1/SLOWNESS
         
         var update_m = new Matrix(this.rez).m;
         for (var x=0; x<this.rez; x++) {
@@ -58,7 +59,8 @@ class Water {
         if (Math.abs(ret) < EPSILON) {
             return 0;
         }
-        return ret; 
+        if (ret > 0) {return Math.min(MAX_HEIGHT, ret);}
+        return Math.max(-MAX_HEIGHT, ret);
     }
 
     sigmoid(z) {
@@ -82,11 +84,12 @@ class Water {
     }
 
     disturb(cx, cy) {
+        /*
         for (var y=0; y<this.rez; y++){
             for (var x=0; x<this.rez; x++) {
                 this.prev[y][x] = this.cur[y][x]; 
             }
-        }
+        } */
         
         console.log("in 'disturb'")
 
@@ -111,7 +114,7 @@ class Water {
             var x = xy[0]; var y = xy[1]; 
             vx = x*this.incriment; vy = y*this.incriment; 
 
-            this.cur[y][x] = DROP_DEPTH;
+            this.cur[y][x] = -DROP_DEPTH;
             
             /*
             DROP_DEPTH * Math.abs(
