@@ -246,6 +246,7 @@ function main() {
   */
 
   water = new Water(REZ);
+  canvas.addEventListener('click', water.disturb)
 
   // Create a drop in the middle 
   mid = Math.floor(REZ/2)

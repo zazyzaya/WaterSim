@@ -2,6 +2,7 @@ const C_SQUARED = 1;
 const NU = 5 // Friction
 const SLOWNESS = 1e6
 const EPSILON = 0.05;
+const DROP_SIZE = 0.1;
 
 class Water {
     constructor(resolution) {
@@ -70,4 +71,25 @@ class Water {
 
         return out.map((e) => this.sigmoid(e));
     }
+
+    disturb(event) {
+        // Returns coords in term of percent where 
+        // top left is (0., 0.) bottom right is (1., 1.)
+        coords = get_relative_coords(event); 
+    }
+}
+
+function get_relative_coords(e) {
+    // e = Mouse click event.
+    var rect = e.target.getBoundingClientRect();
+    var x = e.clientX - rect.left; //x position within the element.
+    var y = e.clientY - rect.top;  //y position within the element.
+
+    var canvas_h = rect.bottom-rect.top;
+    var canvas_w = rect.right - rect.left; 
+
+    var percent_y = y / canvas_h;
+    var percent_x = x / canvas_w; 
+
+    return [percent_x, percent_y]
 }
