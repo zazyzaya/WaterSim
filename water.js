@@ -3,8 +3,8 @@ const NU = 2 // Friction
 const SLOWNESS = 200
 const EPSILON = 0.0001;
 const MAX_HEIGHT = 100
-const DROP_SIZE = 0.01;
-const DROP_DEPTH = 1; 
+const DROP_SIZE = 0.02;
+const DROP_DEPTH = 2; 
 
 class Water {
     constructor(resolution) {
@@ -93,6 +93,9 @@ class Water {
         
         console.log("in 'disturb'")
 
+        let drop_size = DROP_SIZE*Math.random();
+        let drop_depth = DROP_DEPTH*Math.random();
+
         // First find all points in water plane that are affected by
         // object pushing on water. Everything in circle centered at 
         // <cx, cy> 
@@ -102,7 +105,7 @@ class Water {
                 vx = x*this.incriment; vy=y*this.incriment; 
                 
                 // Inside of sphere pushing the water
-                if (this.magnitude((vx-cx), (vy-cy)) <= DROP_SIZE) {
+                if (this.magnitude((vx-cx), (vy-cy)) <= drop_size) {
                     affected.push([x,y])
                 }
             }
@@ -114,13 +117,13 @@ class Water {
             var x = xy[0]; var y = xy[1]; 
             vx = x*this.incriment; vy = y*this.incriment; 
 
-            this.cur[y][x] = -DROP_DEPTH;
+            this.cur[y][x] = -drop_depth;
             
             /*
-            DROP_DEPTH * Math.abs(
+            this.cur[x][y] = -DROP_DEPTH * Math.abs(
                 Math.pow((vx - cx), 2) + Math.pow((vy - cy), 2) - Math.pow(DROP_SIZE, 2)
-            ); */
-            //this.prev[y][x] = this.cur[y][x]; 
+            ); //*/
+        
         }); 
 
     }
