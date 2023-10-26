@@ -94,7 +94,7 @@ class Water {
         console.log("in 'disturb'")
 
         let drop_size = DROP_SIZE*Math.random();
-        let drop_depth = DROP_DEPTH*Math.random();
+        let drop_depth = DROP_DEPTH*Math.min(Math.random(), 0.2);
 
         // First find all points in water plane that are affected by
         // object pushing on water. Everything in circle centered at 

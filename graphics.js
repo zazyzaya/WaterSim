@@ -272,3 +272,23 @@ function main() {
     position_ptr, color_ptr
   ); 
 }
+
+function fadeOutEffect(id) {
+  var fadeTarget = document.getElementById(id);
+  var fadeEffect = setInterval(function () {
+      if (!fadeTarget.style.opacity) {
+          fadeTarget.style.opacity = 1;
+      }
+      if (fadeTarget.style.opacity > 0) {
+          fadeTarget.style.opacity -= 0.1;
+      } else {
+          clearInterval(fadeEffect);
+      }
+  }, 100);
+}
+
+function hide_instructions() {
+  //let div = document.getElementById("clickme");
+  //div.style.display = div.style.display == "none" ? "block" : "none";
+  fadeOutEffect("clickme"); 
+}
